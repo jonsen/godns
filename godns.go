@@ -208,3 +208,47 @@ func LookupCNAME(name string, options *LookupOptions) (cname string, err error) 
 	cname = rr[0].(*dnsRR_CNAME).Cname
 	return
 }
+
+
+func LookupIPTtl(name string, options *LookupOptions) (addrs []net.IP, ttl uint32, err error) {
+	dnscfg, dnserr := dnsConfigWithOptions(options)
+	if dnserr != nil || dnscfg == nil {
+		err = dnserr
+		return
+	}
+	var records []dnsRR
+	var cname string
+	ttl = uint32(3600)
+	cname, records, err = lookup(dnscfg, name, dnsTypeA)
+	if err != nil {
+		return
+	}
+
+	if len(records) > 0 && nil != records[0].Header() {
+		ttl = records[0].Header().Ttl
+	}
+
+	addrs = convertRR_A(records)
+	if cname != "" {
+		name = cname
+	}
+
+	if !options.OnlyIPv4 {
+		_, records, err = lookup(dnscfg, name, dnsTypeAAAA)
+		if err != nil && len(addrs) > 0 {
+			// Ignore error because A lookup succeeded.
+			err = nil
+		}
+		if err != nil {
+			return
+		}
+		// if A lookup failed, get ttl from AAAA
+		if len(addrs) < 1 && len(records) > 0 && nil != records[0].Header() {
+			ttl = records[0].Header().Ttl
+		}
+
+		addrs = append(addrs, convertRR_AAAA(records)...)
+	}
+
+	return
+}
