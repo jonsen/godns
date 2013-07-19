@@ -218,7 +218,7 @@ func LookupIPTtl(name string, options *LookupOptions) (addrs []net.IP, ttl uint3
 	}
 	var records []dnsRR
 	var cname string
-	ttl = uint32(3600)
+	ttl = uint32(60)
 	cname, records, err = lookup(dnscfg, name, dnsTypeA)
 	if err != nil {
 		return
